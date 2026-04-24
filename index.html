@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Бриллиант — Telegram</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:    #0d1117;
+  --bg2:   #161b22;
+  --bg3:   #21262d;
+  --bg4:   #2d333b;
+  --acc:   #58a6ff;
+  --acc2:  #79c0ff;
+  --grn:   #3fb950;
+  --grn2:  #56d364;
+  --red:   #f85149;
+  --red2:  #ff7b72;
+  --org:   #e3b341;
+  --purp:  #bc8cff;
+  --text:  #e6edf3;
+  --text2: #8b949e;
+  --text3: #484f58;
+  --bdr:   #30363d;
+  --bdr2:  #21262d;
+  --tg-safe: env(safe-area-inset-bottom, 0px);
+}
+
+/* Если Telegram предоставляет тему — используем */
+body.tg-dark {
+  --bg: var(--tg-theme-bg-color, #0d1117);
+  --text: var(--tg-theme-text-color, #e6edf3);
+  --acc: var(--tg-theme-button-color, #58a6ff);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html { font-size:16px; }
+
+body {
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Nunito',sans-serif;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* ── HEADER ── */
+.hdr {
+  background:var(--bg2);
+  border-bottom:1px solid var(--bdr);
+  padding:12px 16px;
+  display:flex; align-items:center; justify-content:space-between;
+  position:sticky; top:0; z-index:100;
+}
+.hdr-logo { display:flex; align-items:center; gap:9px; }
+.hdr-gem {
+  width:32px; height:32px;
+  background:linear-gradient(135deg,#58a6ff,#bc8cff);
+  border-radius:8px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:16px;
+}
+.hdr-name { font-size:16px; font-weight:800; }
+.hdr-name span { color:var(--acc); }
+.hdr-date {
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px; color:var(--text2);
+}
+
+/* ── TABS ── */
+.tabs {
+  display:flex; background:var(--bg2);
+  border-bottom:1px solid var(--bdr);
+  position:sticky; top:57px; z-index:99;
+  overflow-x:auto; scrollbar-width:none;
+}
+.tabs::-webkit-scrollbar { display:none; }
+.tab {
+  flex:1; min-width:72px;
+  padding:10px 4px 9px;
+  border:none; background:none; cursor:pointer;
+  color:var(--text2);
+  font-family:'Nunito',sans-serif;
+  font-size:11px; font-weight:700;
+  display:flex; flex-direction:column;
+  align-items:center; gap:3px;
+  border-bottom:2px solid transparent;
+  transition:all .15s; white-space:nowrap;
+}
+.tab svg { width:18px; height:18px; }
+.tab.active { color:var(--acc); border-bottom-color:var(--acc); }
+
+/* ── PAGES ── */
+.page { display:none; padding:16px; padding-bottom:calc(16px + var(--tg-safe)); }
+.page.active { display:block; }
+
+/* ── COMPONENTS ── */
+.card {
+  background:var(--bg2);
+  border:1px solid var(--bdr);
+  border-radius:12px;
+  padding:14px;
+  margin-bottom:10px;
+}
+.section-title {
+  font-size:11px; font-weight:700;
+  color:var(--text2); text-transform:uppercase;
+  letter-spacing:.8px; margin-bottom:10px;
+}
+
+/* ── PROGRESS ── */
+.prog-wrap {
+  background:var(--bg2); border:1px solid var(--bdr);
+  border-radius:12px; padding:12px 14px;
+  margin-bottom:14px;
+  display:flex; align-items:center; gap:12px;
+}
+.prog-bar-bg { flex:1; height:5px; background:var(--bg4); border-radius:3px; overflow:hidden; }
+.prog-bar { height:100%; border-radius:3px;
+  background:linear-gradient(90deg,var(--grn),var(--acc));
+  transition:width .3s; }
+.prog-num {
+  font-family:'IBM Plex Mono',monospace;
+  font-size:13px; font-weight:700; color:var(--grn);
+  min-width:32px; text-align:right;
+}
+
+/* ── CHECK ITEMS ── */
+.chk {
+  display:flex; align-items:flex-start; gap:10px;
+  padding:11px 12px;
+  border-radius:10px; margin-bottom:7px;
+  border:1px solid var(--bdr);
+  background:var(--bg3);
+  cursor:pointer; transition:all .15s;
+  -webkit-user-select:none; user-select:none;
+}
+.chk.done { border-color:var(--grn); background:rgba(63,185,80,.08); }
+.chk-box {
+  width:20px; height:20px; min-width:20px;
+  border-radius:5px; border:2px solid var(--bdr2);
+  display:flex; align-items:center; justify-content:center;
+  margin-top:1px; transition:all .15s;
+}
+.chk.done .chk-box { background:var(--grn); border-color:var(--grn); }
+.chk-mark { font-size:12px; color:#fff; display:none; }
+.chk.done .chk-mark { display:block; }
+.chk-body { flex:1; }
+.chk-n {
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10px; color:var(--acc); font-weight:600; margin-bottom:2px;
+}
+.chk-t { font-size:13px; font-weight:700; color:var(--text); }
+.chk-d { font-size:11.5px; color:var(--text2); margin-top:2px; line-height:1.4; }
+.chk-f {
+  font-size:10px; color:var(--text3);
+  background:var(--bg4); border-radius:4px;
+  padding:2px 6px; margin-top:4px; display:inline-block;
+  font-family:'IBM Plex Mono',monospace;
+}
+
+/* ── SIGNAL ── */
+.signal {
+  text-align:center; padding:14px;
+  border-radius:12px; margin-top:6px;
+  font-size:14px; font-weight:800;
+  transition:all .3s;
+}
+.signal.wait { background:rgba(72,79,88,.2); border:1px solid var(--bdr); color:var(--text2); }
+.signal.go { background:rgba(63,185,80,.12); border:1px solid var(--grn); color:var(--grn);
+  animation:glow 2s infinite; }
+@keyframes glow {
+  0%,100%{box-shadow:0 0 16px rgba(63,185,80,.15);}
+  50%{box-shadow:0 0 32px rgba(63,185,80,.4);}
+}
+
+/* ── FORM ── */
+.f-group { margin-bottom:11px; }
+.f-label {
+  font-size:10px; font-weight:700; color:var(--text2);
+  text-transform:uppercase; letter-spacing:.7px;
+  margin-bottom:5px; display:block;
+}
+.f-input, .f-select, .f-ta {
+  width:100%; background:var(--bg3);
+  border:1px solid var(--bdr2); border-radius:8px;
+  color:var(--text); font-family:'Nunito',sans-serif;
+  font-size:14px; padding:10px 12px;
+  outline:none; -webkit-appearance:none;
+  transition:border-color .15s;
+}
+.f-input:focus,.f-select:focus,.f-ta:focus { border-color:var(--acc); }
+.f-ta { resize:none; height:68px; }
+.f-row2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.f-row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; }
+
+.type-row { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:12px; }
+.type-b {
+  padding:10px; border-radius:8px;
+  border:1px solid var(--bdr2); background:var(--bg3);
+  color:var(--text2); font-family:'Nunito',sans-serif;
+  font-size:13px; font-weight:800; cursor:pointer;
+  transition:all .15s; text-align:center;
+}
+.type-b.long { border-color:var(--grn); background:rgba(63,185,80,.12); color:var(--grn); }
+.type-b.short { border-color:var(--red); background:rgba(248,81,73,.12); color:var(--red); }
+
+.calc {
+  background:var(--bg4); border-radius:8px;
+  padding:10px 12px; margin-top:8px;
+}
+.cr { display:flex; justify-content:space-between; align-items:center; padding:3px 0; }
+.cl { font-size:11.5px; color:var(--text2); }
+.cv {
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12px; font-weight:700; color:var(--text);
+}
+.cv.g { color:var(--grn); } .cv.r { color:var(--red); } .cv.o { color:var(--org); }
+
+.sects { display:flex; flex-wrap:wrap; gap:5px; }
+.sect {
+  padding:6px 10px; border-radius:7px;
+  border:1px solid var(--bdr2); background:var(--bg3);
+  font-size:11.5px; font-weight:700;
+  color:var(--text2); cursor:pointer; transition:all .15s;
+}
+.sect.sel { border-color:var(--acc); background:rgba(88,166,255,.1); color:var(--acc2); }
+
+.vix-bar { display:flex; gap:3px; margin-top:7px; }
+.vix-z { flex:1; height:7px; border-radius:3px; cursor:pointer; }
+
+.save-b {
+  width:100%; padding:13px;
+  background:var(--acc);
+  border:none; border-radius:10px;
+  color:#0d1117; font-family:'Nunito',sans-serif;
+  font-size:15px; font-weight:900; cursor:pointer;
+  margin-top:6px; transition:opacity .15s;
+}
+.save-b:active { opacity:.8; }
+.sec-b {
+  width:100%; padding:10px;
+  background:var(--bg3); border:1px solid var(--bdr);
+  border-radius:10px; color:var(--text2);
+  font-family:'Nunito',sans-serif;
+  font-size:13px; font-weight:700; cursor:pointer;
+  margin-top:6px; transition:opacity .15s;
+}
+
+/* ── TRADE CARDS ── */
+.tc {
+  background:var(--bg2); border:1px solid var(--bdr);
+  border-radius:12px; padding:13px;
+  margin-bottom:9px; cursor:pointer;
+  transition:border-color .15s;
+}
+.tc:active { border-color:var(--acc); }
+.tc-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:7px; }
+.tc-ticker {
+  font-family:'IBM Plex Mono',monospace;
+  font-size:17px; font-weight:700;
+}
+.tc-pnl {
+  font-family:'IBM Plex Mono',monospace;
+  font-size:14px; font-weight:700;
+}
+.tc-pnl.p { color:var(--grn); }
+.tc-pnl.n { color:var(--red); }
+.tc-pnl.o { color:var(--org); }
+.tags { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:8px; }
+.tag {
+  font-size:10.5px; font-weight:700;
+  padding:3px 7px; border-radius:4px;
+}
+.tl { background:rgba(63,185,80,.12); color:var(--grn); }
+.ts { background:rgba(248,81,73,.12); color:var(--red); }
+.to { background:rgba(227,179,65,.12); color:var(--org); }
+.tcl { background:rgba(72,79,88,.2); color:var(--text2); }
+.ta { background:rgba(88,166,255,.1); color:var(--acc2); }
+.tp { background:rgba(188,140,255,.1); color:var(--purp); }
+.tc-details { display:grid; grid-template-columns:repeat(3,1fr); gap:5px; }
+.dc { text-align:center; }
+.dl { font-size:10px; color:var(--text3); margin-bottom:2px; }
+.dv { font-family:'IBM Plex Mono',monospace; font-size:11.5px; font-weight:600; color:var(--text2); }
+.empty { text-align:center; padding:48px 16px; color:var(--text2); }
+.e-ico { font-size:40px; margin-bottom:10px; }
+.e-t { font-size:15px; font-weight:700; }
+.e-s { font-size:12px; color:var(--text3); margin-top:4px; }
+
+/* ── STATS ── */
+.sg { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px; }
+.sc {
+  background:var(--bg2); border:1px solid var(--bdr);
+  border-radius:12px; padding:12px;
+}
+.sl { font-size:10.5px; color:var(--text2); font-weight:600; margin-bottom:3px; }
+.sv {
+  font-family:'IBM Plex Mono',monospace;
+  font-size:20px; font-weight:700;
+}
+.sv.g { color:var(--grn); } .sv.r { color:var(--red); }
+.sv.b { color:var(--acc); } .sv.o { color:var(--org); }
+
+/* ── RULES ── */
+.rules { margin-bottom:10px; }
+.rule {
+  display:flex; align-items:flex-start; gap:9px;
+  padding:10px 12px;
+  background:rgba(248,81,73,.06);
+  border:1px solid rgba(248,81,73,.2);
+  border-radius:10px; margin-bottom:6px;
+}
+.rn {
+  width:22px; height:22px; min-width:22px;
+  background:var(--red); border-radius:5px;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10px; font-weight:700; color:#fff;
+}
+.rt { font-size:13px; font-weight:700; color:var(--text); }
+
+/* ── MODAL SHEET ── */
+.sheet-bg {
+  position:fixed; inset:0; z-index:300;
+  background:rgba(0,0,0,.7);
+  backdrop-filter:blur(4px);
+  display:none; align-items:flex-end;
+}
+.sheet-bg.open { display:flex; }
+.sheet {
+  width:100%; background:var(--bg2);
+  border-radius:20px 20px 0 0;
+  border-top:1px solid var(--bdr2);
+  padding:8px 18px calc(20px + var(--tg-safe));
+  max-height:80vh; overflow-y:auto;
+}
+.sh-handle {
+  width:32px; height:4px; background:var(--bdr2);
+  border-radius:2px; margin:8px auto 14px;
+}
+.sh-title { font-size:17px; font-weight:800; margin-bottom:14px; }
+
+.btn-row { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:14px; }
+.del-b {
+  width:100%; padding:10px;
+  background:rgba(248,81,73,.1); border:1px solid rgba(248,81,73,.3);
+  border-radius:8px; color:var(--red);
+  font-family:'Nunito',sans-serif; font-size:13px; font-weight:700;
+  cursor:pointer; margin-top:6px; transition:opacity .15s;
+}
+
+/* ── LIVE dot ── */
+@keyframes blink { 0%,100%{opacity:1}50%{opacity:.3} }
+.live { width:6px; height:6px; border-radius:50%;
+  background:var(--grn); display:inline-block;
+  animation:blink 1.4s infinite; margin-right:4px; }
+
+/* ── TOAST ── */
+.toast {
+  position:fixed; top:70px; left:50%; transform:translateX(-50%);
+  background:var(--grn); color:#0d1117;
+  font-size:12px; font-weight:800;
+  padding:8px 18px; border-radius:20px;
+  z-index:400; opacity:0; transition:opacity .25s;
+  pointer-events:none; white-space:nowrap;
+}
+.toast.show { opacity:1; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-logo">
+    <div class="hdr-gem">💎</div>
+    <div class="hdr-name">Бриллиант<span>.</span></div>
+  </div>
+  <div class="hdr-date" id="hDate"></div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" onclick="nav('check',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    Чек-лист
+  </button>
+  <button class="tab" onclick="nav('new',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="12" y1="8" x2="12" y2="16"/>
+      <line x1="8" y1="12" x2="16" y2="12"/>
+    </svg>
+    Сделка
+  </button>
+  <button class="tab" onclick="nav('journal',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M4 6h16M4 10h16M4 14h8M4 18h6"/>
+    </svg>
+    Журнал
+  </button>
+  <button class="tab" onclick="nav('stats',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M3 18h3v-8H3v8zm4 0h3V8H7v10zm4 0h3V4h-3v14zm4 0h3v-6h-3v6z"/>
+    </svg>
+    Итоги
+  </button>
+</div>
+
+<!-- ══ PAGE: CHECKLIST ══ -->
+<div class="page active" id="page-check">
+
+  <div class="prog-wrap">
+    <div class="prog-bar-bg">
+      <div class="prog-bar" id="pBar" style="width:0%"></div>
+    </div>
+    <div class="prog-num" id="pNum">0/9</div>
+  </div>
+
+  <div id="chkList"></div>
+
+  <div class="signal wait" id="sig">⏳ Ответь на все вопросы</div>
+  <button class="sec-b" onclick="resetChk()" style="margin-top:8px">↺ Сбросить</button>
+</div>
+
+<!-- ══ PAGE: NEW TRADE ══ -->
+<div class="page" id="page-new">
+
+  <div class="card">
+    <div class="type-row">
+      <button class="type-b long" id="bLong" onclick="setT('Лонг')">↑ Лонг</button>
+      <button class="type-b" id="bShort" onclick="setT('Шорт')">↓ Шорт</button>
+    </div>
+    <div class="f-row2">
+      <div class="f-group">
+        <label class="f-label">Инструмент</label>
+        <input class="f-input" id="fTick" placeholder="SBER" oninput="this.value=this.value.toUpperCase()">
+      </div>
+      <div class="f-group">
+        <label class="f-label">Дата</label>
+        <input class="f-input" id="fDt" type="date">
+      </div>
+    </div>
+    <div class="f-row3">
+      <div class="f-group">
+        <label class="f-label">Вход ₽</label>
+        <input class="f-input" id="fEn" type="number" placeholder="300" oninput="calc()">
+      </div>
+      <div class="f-group">
+        <label class="f-label">Стоп ₽</label>
+        <input class="f-input" id="fSt" type="number" placeholder="294" oninput="calc()">
+      </div>
+      <div class="f-group">
+        <label class="f-label">Цель ₽</label>
+        <input class="f-input" id="fTg" type="number" placeholder="315" oninput="calc()">
+      </div>
+    </div>
+    <div class="f-group">
+      <label class="f-label">Объём (₽)</label>
+      <input class="f-input" id="fVol" type="number" placeholder="50000" oninput="calc()">
+    </div>
+    <div class="calc">
+      <div class="cr"><span class="cl">Стоп %</span><span class="cv" id="cSt">—</span></div>
+      <div class="cr"><span class="cl">R:R</span><span class="cv" id="cRR">—</span></div>
+      <div class="cr"><span class="cl">Макс. убыток</span><span class="cv r" id="cLoss">—</span></div>
+      <div class="cr"><span class="cl">Макс. прибыль</span><span class="cv g" id="cWin">—</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Сектор</div>
+    <div class="sects" id="sectWrap">
+      <span class="sect" onclick="selSect(this)">RUSFN</span>
+      <span class="sect" onclick="selSect(this)">RUSOG</span>
+      <span class="sect" onclick="selSect(this)">RUSMM</span>
+      <span class="sect" onclick="selSect(this)">RUSIT</span>
+      <span class="sect" onclick="selSect(this)">RUSRE</span>
+      <span class="sect" onclick="selSect(this)">RUSCN</span>
+      <span class="sect" onclick="selSect(this)">Крипта</span>
+      <span class="sect" onclick="selSect(this)">Другое</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="f-group">
+      <label class="f-label">VIX при входе</label>
+      <input class="f-input" id="fVix" type="number" placeholder="18.5" step="0.1">
+      <div class="vix-bar">
+        <div class="vix-z" style="background:#3fb950" onclick="document.getElementById('fVix').value=12" title="< 15 — спокойно"></div>
+        <div class="vix-z" style="background:#56d364" onclick="document.getElementById('fVix').value=17" title="15–20 — норма"></div>
+        <div class="vix-z" style="background:#e3b341" onclick="document.getElementById('fVix').value=25" title="20–30 — осторожно"></div>
+        <div class="vix-z" style="background:#f85149" onclick="document.getElementById('fVix').value=35" title="30–40 — стоп"></div>
+        <div class="vix-z" style="background:#bc8cff" onclick="document.getElementById('fVix').value=45" title="> 40 — паника"></div>
+      </div>
+    </div>
+    <div class="f-group">
+      <label class="f-label">Паттерн</label>
+      <select class="f-select" id="fPat">
+        <option value="">Выбрать...</option>
+        <option>Пробитие уровня</option>
+        <option>Отскок от MA-50</option>
+        <option>Ложный пробой вниз</option>
+        <option>Другой</option>
+      </select>
+    </div>
+    <div class="f-group">
+      <label class="f-label">Комментарий</label>
+      <textarea class="f-ta" id="fCom" placeholder="Причина входа, наблюдения..."></textarea>
+    </div>
+  </div>
+
+  <button class="save-b" onclick="save()">💾 Сохранить сделку</button>
+</div>
+
+<!-- ══ PAGE: JOURNAL ══ -->
+<div class="page" id="page-journal">
+  <div id="jList"></div>
+</div>
+
+<!-- ══ PAGE: STATS ══ -->
+<div class="page" id="page-stats">
+  <div class="sg" id="sg"></div>
+
+  <div class="section-title" style="margin-bottom:8px">⛔ Три запрета</div>
+  <div class="rules">
+    <div class="rule"><div class="rn">1</div><div class="rt">НИКОГДА без стоп-лосса</div></div>
+    <div class="rule"><div class="rn">2</div><div class="rt">НИКОГДА против EMA-200</div></div>
+    <div class="rule"><div class="rn">3</div><div class="rt">НИКОГДА пропускать шаги алгоритма</div></div>
+  </div>
+
+  <div class="section-title" style="margin-bottom:8px;margin-top:14px">☁️ Синхронизация через Telegram</div>
+  <div style="background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:12px;margin-bottom:8px">
+    <div id="syncStatus" style="font-size:12px;color:var(--t2);margin-bottom:10px;text-align:center">
+      ☁️ Нажми для синхронизации
+    </div>
+    <div style="font-size:11px;color:var(--t3);margin-bottom:10px;line-height:1.5">
+      Данные сохраняются в твой Telegram. При открытии на другом устройстве — автоматически подтягиваются.
+    </div>
+    <button class="sec-b" onclick="manualSync()" style="margin-bottom:8px;color:var(--green);border-color:rgba(46,160,67,.4)">
+      🔄 Синхронизировать сейчас
+    </button>
+    <button class="sec-b" onclick="forcePush()" style="margin-bottom:0;color:var(--acc);border-color:rgba(88,166,255,.4)">
+      📤 Отправить мои данные в облако
+    </button>
+  </div>
+
+  <div class="section-title" style="margin-bottom:8px;margin-top:14px">📊 Экспорт данных</div>
+  <div style="background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:12px;margin-bottom:8px">
+    <div style="font-size:11px;color:var(--t3);margin-bottom:10px;line-height:1.5">
+      Скачай все сделки в Excel — с формулами, статистикой и цветовым форматированием.
+    </div>
+    <button class="sec-b" onclick="exportExcel()" style="margin-bottom:0;color:#f59e0b;border-color:rgba(245,158,11,.4)">
+      📥 Скачать в Excel (.csv)
+    </button>
+  </div>
+
+  <button class="sec-b" onclick="nukeAll()"
+    style="color:var(--red);border-color:rgba(248,81,73,.3)">
+    🗑 Удалить все данные
+  </button>
+</div>
+
+<!-- ══ TRADE SHEET ══ -->
+<div class="sheet-bg" id="sh" onclick="closeSh(event)">
+  <div class="sheet" id="shContent">
+    <div class="sh-handle"></div>
+    <div class="sh-title" id="shTitle"></div>
+    <div id="shBody"></div>
+    <div class="btn-row">
+      <button class="sec-b" style="margin:0" onclick="closeSheet()">Закрыть</button>
+      <button class="save-b" id="closeTrdBtn" style="margin:0;font-size:13px" onclick="closeTrd()">✓ Закрыть сделку</button>
+    </div>
+    <button class="del-b" onclick="delTrd()">Удалить сделку</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══ Telegram WebApp Init ═══
+let tg = null;
+try {
+  tg = window.Telegram?.WebApp;
+  if (tg) {
+    tg.ready();
+    tg.expand();
+    // Применяем цвета темы Telegram
+    if (tg.colorScheme === 'dark') document.body.classList.add('tg-dark');
+    // Главная кнопка не используем — у нас своя навигация
+  }
+} catch(e) { console.log('Not in Telegram, running standalone'); }
+
+// ═══ DATA ═══
+const CHKS = [
+  {n:1,t:'Макро фон благоприятный?',d:'Ставка ЦБ снижается + M2 растёт',f:'Раз в месяц'},
+  {n:2,t:'Рынок в целом растёт?',d:'IMOEX / S&P500 выше EMA-200',f:'Каждый день'},
+  {n:3,t:'VIX в норме (< 20)?',d:'20–35 = объём×0.5 | >35 = стоп',f:'Каждый день'},
+  {n:4,t:'Сектор-лидер определён?',d:'Обгоняет рынок, причина ясна',f:'Раз в неделю'},
+  {n:5,t:'Акция лидирует в секторе?',d:'Обгоняет свой сектор, не аутсайдер',f:'Раз в неделю'},
+  {n:6,t:'Цена выше EMA-200 на 1D?',d:'Красная линия ниже цены, идёт вверх',f:'Каждый день'},
+  {n:7,t:'Откат к MA-50 на 1H?',d:'Цена коснулась фиолетовой линии',f:'Каждый день'},
+  {n:8,t:'EMA-21 подтвердила?',d:'EMA-21 пересекла MA-50 снизу вверх',f:'Каждый день'},
+  {n:9,t:'R:R не менее 1:1.5?',d:'Стоп и цель выставлены заранее',f:'Перед входом'},
+];
+
+let chked = new Set();
+let trades = [];
+let curIdx = null;
+let curType = 'Лонг';
+let curSect = '';
+
+// ══════════════════════════════════════════
+// TELEGRAM CLOUDSTORAGE SYNC
+// Telegram.WebApp.CloudStorage — работает
+// на всех устройствах где открыт этот бот
+// ══════════════════════════════════════════
+
+const tgApp = window.Telegram?.WebApp;
+
+// Сохраняем в CloudStorage
+function tgSave() {
+  try {
+    if (!tgApp?.CloudStorage) { persist(); return; }
+    const payload = JSON.stringify({
+      trades: trades,
+      checked: [...chked],
+      ts: Date.now()
+    });
+    tgApp.CloudStorage.setItem('brilliant_data', payload, (err, ok) => {
+      if (err) console.log('CloudStorage save error:', err);
+    });
+    persist(); // дублируем в localStorage
+  } catch(e) { persist(); }
+}
+
+// Читаем из CloudStorage
+function tgLoad(callback) {
+  try {
+    if (!tgApp?.CloudStorage) { callback(null); return; }
+    tgApp.CloudStorage.getItem('brilliant_data', (err, value) => {
+      if (err || !value) { callback(null); return; }
+      try {
+        callback(JSON.parse(value));
+      } catch(e) { callback(null); }
+    });
+  } catch(e) { callback(null); }
+}
+
+// Синхронизация при запуске
+function syncOnStart() {
+  const syncBtn = document.getElementById('syncStatus');
+  if (syncBtn) syncBtn.textContent = '🔄 Синхронизация...';
+
+  tgLoad((remote) => {
+    if (remote && remote.ts) {
+      const localTs = parseInt(localStorage.getItem('brill_tg_ts')||'0');
+      if (remote.ts > localTs) {
+        // Облако свежее — берём данные из облака полностью
+        trades = remote.trades;
+        if (remote.checked) chked = new Set(remote.checked);
+        persist();
+        renderChk(); updProg(); renderJ(); renderStats();
+        if (syncBtn) syncBtn.textContent = '✅ Синхронизировано';
+        toast('Данные обновлены');
+      } else {
+        if (syncBtn) syncBtn.textContent = '✅ Актуально';
+      }
+    } else {
+      if (syncBtn) {
+        if (!tgApp?.CloudStorage) {
+          syncBtn.textContent = '⚠️ Открой через Telegram бота';
+        } else {
+          syncBtn.textContent = '☁️ Данных в облаке нет';
+        }
+      }
+    }
+  });
+}
+
+function load() {
+  try {
+    const t = localStorage.getItem('brill_tg_trades');
+    if (t) trades = JSON.parse(t);
+    const c = localStorage.getItem('brill_tg_chk');
+    if (c) chked = new Set(JSON.parse(c));
+  } catch(e) {}
+}
+function persist() {
+  try {
+    localStorage.setItem('brill_tg_trades', JSON.stringify(trades));
+    localStorage.setItem('brill_tg_chk', JSON.stringify([...chked]));
+    localStorage.setItem('brill_tg_ts', Date.now().toString());
+  } catch(e) {}
+}
+
+// ═══ INIT ═══
+function init() {
+  load();
+  // Date
+  const d = new Date();
+  document.getElementById('hDate').textContent =
+    d.toLocaleDateString('ru',{weekday:'short',day:'numeric',month:'short'});
+  // Default date input
+  const y=d.getFullYear(), mo=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
+  document.getElementById('fDt').value = `${y}-${mo}-${dd}`;
+  renderChk(); updProg();
+  renderJ();
+  // Синхронизируем с Telegram при запуске
+  setTimeout(syncOnStart, 800);
+}
+
+// ═══ NAVIGATION ═══
+function nav(id, btn) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (id==='journal') renderJ();
+  if (id==='stats') renderStats();
+}
+
+// ═══ CHECKLIST ═══
+function renderChk() {
+  document.getElementById('chkList').innerHTML = CHKS.map((c,i)=>`
+    <div class="chk ${chked.has(i)?'done':''}" onclick="tog(${i})">
+      <div class="chk-box"><span class="chk-mark">✓</span></div>
+      <div class="chk-body">
+        <div class="chk-n">Вопрос ${c.n} из 9</div>
+        <div class="chk-t">${c.t}</div>
+        <div class="chk-d">${c.d}</div>
+        <span class="chk-f">${c.f}</span>
+      </div>
+    </div>`).join('');
+}
+function tog(i) {
+  chked.has(i)?chked.delete(i):chked.add(i);
+  renderChk(); updProg(); persist();
+  // Haptic feedback в Telegram
+  try { tg?.HapticFeedback?.selectionChanged(); } catch(e){}
+}
+function updProg() {
+  const n=chked.size, p=Math.round(n/9*100);
+  document.getElementById('pBar').style.width=p+'%';
+  document.getElementById('pNum').textContent=n+'/9';
+  const s=document.getElementById('sig');
+  if (n===9) {
+    s.className='signal go';
+    s.textContent='✅ Все фильтры — ОТКРЫВАЕМ СДЕЛКУ!';
+    try { tg?.HapticFeedback?.notificationOccurred('success'); } catch(e){}
+  } else {
+    s.className='signal wait';
+    s.textContent=`⏳ Ещё ${9-n} ${pl(9-n,'вопрос','вопроса','вопросов')}`;
+  }
+}
+function pl(n,a,b,c) {
+  if(n%10===1&&n%100!==11) return a;
+  if([2,3,4].includes(n%10)&&![12,13,14].includes(n%100)) return b;
+  return c;
+}
+function resetChk() {
+  chked.clear(); renderChk(); updProg(); persist(); toast('Чек-лист сброшен');
+}
+
+// ═══ NEW TRADE ═══
+function setT(t) {
+  curType=t;
+  document.getElementById('bLong').className='type-b'+(t==='Лонг'?' long':'');
+  document.getElementById('bShort').className='type-b'+(t==='Шорт'?' short':'');
+}
+function selSect(el) {
+  document.querySelectorAll('.sect').forEach(s=>s.classList.remove('sel'));
+  el.classList.add('sel'); curSect=el.textContent;
+}
+function calc() {
+  const en=+document.getElementById('fEn').value;
+  const st=+document.getElementById('fSt').value;
+  const tg2=+document.getElementById('fTg').value;
+  const vol=+document.getElementById('fVol').value;
+  if (!en||!st) return;
+  const sp=Math.abs((st-en)/en*100);
+  const rr=tg2&&st?Math.abs((tg2-en)/(en-st)):null;
+  const loss=vol?Math.abs((st-en)/en*vol):null;
+  const win=vol&&tg2?Math.abs((tg2-en)/en*vol):null;
+  document.getElementById('cSt').textContent=sp.toFixed(2)+'%';
+  const rrEl=document.getElementById('cRR');
+  rrEl.textContent=rr?'1:'+rr.toFixed(2):'—';
+  rrEl.className='cv'+(rr>=1.5?' g':rr?' r':'');
+  document.getElementById('cLoss').textContent=loss?'-'+Math.round(loss).toLocaleString('ru')+'₽':'—';
+  document.getElementById('cWin').textContent=win?'+'+Math.round(win).toLocaleString('ru')+'₽':'—';
+}
+function save() {
+  const tick=document.getElementById('fTick').value.trim().toUpperCase();
+  const en=+document.getElementById('fEn').value;
+  const st=+document.getElementById('fSt').value;
+  if (!tick||!en||!st) { toast('Заполни инструмент, вход и стоп'); return; }
+  const tr={
+    id:Date.now(), ticker:tick, type:curType,
+    date:document.getElementById('fDt').value,
+    entry:en, stop:st,
+    target:+document.getElementById('fTg').value||0,
+    volume:+document.getElementById('fVol').value||0,
+    sector:curSect, vix:+document.getElementById('fVix').value||0,
+    pattern:document.getElementById('fPat').value,
+    comment:document.getElementById('fCom').value,
+    status:'open', exitPrice:0, exitDate:'', pnl:0, pnlPct:0
+  };
+  trades.unshift(tr); persist(); tgSave(); clearF(); toast('Сделка сохранена!');
+  try { tg?.HapticFeedback?.notificationOccurred('success'); } catch(e){}
+  nav('journal', document.querySelectorAll('.tab')[2]);
+}
+function clearF() {
+  ['fTick','fEn','fSt','fTg','fVol','fVix','fCom'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fPat').value='';
+  document.querySelectorAll('.sect').forEach(s=>s.classList.remove('sel'));
+  curSect=''; setT('Лонг');
+  ['cSt','cRR','cLoss','cWin'].forEach(id=>document.getElementById(id).textContent='—');
+}
+
+// ═══ JOURNAL ═══
+function renderJ() {
+  const el=document.getElementById('jList');
+  if (!trades.length) {
+    el.innerHTML=`<div class="empty"><div class="e-ico">📋</div>
+      <div class="e-t">Журнал пуст</div>
+      <div class="e-s">Добавь первую сделку</div></div>`;
+    return;
+  }
+  el.innerHTML=trades.map((t,i)=>{
+    const pnlStr=t.status==='open'
+      ?'<span class="live"></span>Открыта'
+      :(t.pnl>=0?'+':'')+Math.round(t.pnl).toLocaleString('ru')+'₽';
+    const pc=t.status==='open'?'o':(t.pnl>=0?'p':'n');
+    const sp=t.entry?Math.abs((t.stop-t.entry)/t.entry*100).toFixed(1):'—';
+    const rr=t.entry&&t.stop&&t.target
+      ?Math.abs((t.target-t.entry)/(t.entry-t.stop)).toFixed(2):'—';
+    const dt=t.date?new Date(t.date).toLocaleDateString('ru',{day:'numeric',month:'short'}):'';
+    return `<div class="tc" onclick="openTrd(${i})">
+      <div class="tc-top">
+        <div style="display:flex;align-items:center;gap:6px">
+          <span class="tc-ticker">${t.ticker}</span>
+          <span class="tag ${t.type==='Лонг'?'tl':'ts'}">${t.type}</span>
+          <span class="tag ${t.status==='open'?'to':'tcl'}">${t.status==='open'?'Открыта':'Закрыта'}</span>
+        </div>
+        <span class="tc-pnl ${pc}">${pnlStr}</span>
+      </div>
+      <div class="tags">
+        ${t.sector?`<span class="tag ta">${t.sector}</span>`:''}
+        ${dt?`<span class="tag tcl">${dt}</span>`:''}
+        ${t.pattern?`<span class="tag tp">${t.pattern}</span>`:''}
+      </div>
+      <div class="tc-details">
+        <div class="dc"><div class="dl">Вход</div><div class="dv">${t.entry.toLocaleString('ru')}</div></div>
+        <div class="dc"><div class="dl">Стоп %</div><div class="dv">${sp}%</div></div>
+        <div class="dc"><div class="dl">R:R</div><div class="dv">${rr}</div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function openTrd(i) {
+  curIdx=i; const t=trades[i];
+  document.getElementById('shTitle').textContent=t.ticker+' — '+t.type;
+  const pnlStr=t.status==='open'?'Открыта':
+    (t.pnl>=0?'+':'')+Math.round(t.pnl).toLocaleString('ru')+'₽ ('+
+    (t.pnlPct>=0?'+':'')+t.pnlPct.toFixed(2)+'%)';
+  const rr=t.entry&&t.stop&&t.target
+    ?Math.abs((t.target-t.entry)/(t.entry-t.stop)).toFixed(2):'—';
+  document.getElementById('shBody').innerHTML=`
+    <div style="background:var(--bg4);border-radius:8px;padding:10px 12px;margin-bottom:12px">
+      <div class="cr"><span class="cl">Вход</span><span class="cv">${t.entry.toLocaleString('ru')} ₽</span></div>
+      <div class="cr"><span class="cl">Стоп</span><span class="cv r">${t.stop.toLocaleString('ru')} ₽</span></div>
+      <div class="cr"><span class="cl">Цель</span><span class="cv g">${t.target?t.target.toLocaleString('ru')+' ₽':'—'}</span></div>
+      <div class="cr"><span class="cl">R:R</span><span class="cv ${rr>=1.5?'g':'r'}">${rr}</span></div>
+      <div class="cr"><span class="cl">Объём</span><span class="cv">${t.volume?t.volume.toLocaleString('ru')+' ₽':'—'}</span></div>
+      <div class="cr"><span class="cl">VIX</span><span class="cv">${t.vix||'—'}</span></div>
+      <div class="cr"><span class="cl">Результат</span><span class="cv ${t.status==='open'?'o':t.pnl>=0?'g':'r'}">${pnlStr}</span></div>
+    </div>
+    ${t.status==='open'?`
+    <div class="f-group">
+      <label class="f-label">Цена выхода</label>
+      <input class="f-input" id="xPrice" type="number" placeholder="${t.target||t.entry}">
+    </div>
+    <div class="f-group">
+      <label class="f-label">Причина выхода</label>
+      <select class="f-select" id="xReason">
+        <option>Цель достигнута</option>
+        <option>Стоп сработал</option>
+        <option>Важные новости</option>
+        <option>Смена тренда</option>
+        <option>Сектор потерял лидерство</option>
+      </select>
+    </div>`:''}
+    ${t.comment?`<div class="f-group"><label class="f-label">Комментарий</label>
+      <div style="font-size:12.5px;color:var(--text2);line-height:1.5">${t.comment}</div></div>`:''}`;
+  document.getElementById('closeTrdBtn').style.display=t.status==='open'?'':'none';
+  document.getElementById('sh').classList.add('open');
+}
+function closeSh(e) { if(e.target===document.getElementById('sh')) closeSheet(); }
+function closeSheet() { document.getElementById('sh').classList.remove('open'); }
+function closeTrd() {
+  const t=trades[curIdx];
+  const xp=+document.getElementById('xPrice').value;
+  if (!xp) { toast('Введи цену выхода'); return; }
+  const dir=t.type==='Лонг'?1:-1;
+  t.exitPrice=xp;
+  t.exitDate=new Date().toISOString().split('T')[0];
+  t.pnlPct=dir*(xp-t.entry)/t.entry*100;
+  t.pnl=t.volume?dir*(xp-t.entry)/t.entry*t.volume:0;
+  t.status='closed';
+  persist(); tgSave(); closeSheet(); renderJ(); renderStats();
+  toast('Сделка закрыта');
+  try { tg?.HapticFeedback?.notificationOccurred('success'); } catch(e){}
+}
+function delTrd() {
+  trades.splice(curIdx,1); persist(); tgSave(); closeSheet(); renderJ(); renderStats();
+  toast('Удалено');
+}
+
+// ═══ STATS ═══
+function renderStats() {
+  const cl=trades.filter(t=>t.status==='closed');
+  const wins=cl.filter(t=>t.pnl>0);
+  const tot=cl.reduce((s,t)=>s+t.pnl,0);
+  const wr=cl.length?Math.round(wins.length/cl.length*100):0;
+  const arr=trades.filter(t=>t.entry&&t.stop&&t.target)
+    .map(t=>Math.abs((t.target-t.entry)/(t.entry-t.stop)));
+  const avgRR=arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:0;
+  const open=trades.filter(t=>t.status==='open').length;
+  document.getElementById('sg').innerHTML=`
+    <div class="sc"><div class="sl">Всего сделок</div><div class="sv b">${trades.length}</div></div>
+    <div class="sc"><div class="sl">% прибыльных</div><div class="sv ${wr>=50?'g':'r'}">${wr}%</div></div>
+    <div class="sc"><div class="sl">Суммарный П/У</div><div class="sv ${tot>=0?'g':'r'}">${tot>=0?'+':''}${Math.round(tot).toLocaleString('ru')}₽</div></div>
+    <div class="sc"><div class="sl">Средний R:R</div><div class="sv ${avgRR>=1.5?'o':'r'}">${avgRR?'1:'+avgRR.toFixed(2):'—'}</div></div>
+    <div class="sc"><div class="sl">Побед / Потерь</div><div class="sv g">${wins.length}<span style="color:var(--text3);font-size:15px"> / </span><span style="color:var(--red)">${cl.length-wins.length}</span></div></div>
+    <div class="sc"><div class="sl">Открыто</div><div class="sv o">${open}</div></div>`;
+}
+
+async function manualSync() {
+  syncOnStart();
+}
+
+function forcePush() {
+  const btn = document.getElementById('syncStatus');
+  if (btn) btn.textContent = '📤 Сохраняю...';
+  tgSave();
+  setTimeout(() => {
+    if (btn) btn.textContent = '✅ Данные сохранены в облако';
+    toast('Данные сохранены!');
+  }, 800);
+}
+
+function exportExcel() {
+  if (!trades.length) { toast('Нет сделок для экспорта'); return; }
+
+  // Считаем статистику
+  const closed = trades.filter(t => t.status === 'closed');
+  const wins   = closed.filter(t => t.pnl > 0);
+  const losses = closed.filter(t => t.pnl <= 0);
+  const totalPnl = closed.reduce((s,t) => s + t.pnl, 0);
+  const winRate  = closed.length ? (wins.length / closed.length * 100).toFixed(1) : 0;
+  const avgRR    = trades.filter(t => t.entry && t.stop && t.target)
+    .map(t => Math.abs((t.target - t.entry) / (t.entry - t.stop)))
+    .reduce((a,b,_,ar) => a + b/ar.length, 0);
+
+  // BOM для корректного отображения кириллицы в Excel
+  const BOM = '\uFEFF';
+
+  // Строки CSV
+  const rows = [];
+
+  // Заголовок файла
+  rows.push('ЖУРНАЛ СДЕЛОК — СТРАТЕГИЯ БРИЛЛИАНТ');
+  rows.push(`Дата выгрузки:;${new Date().toLocaleDateString('ru')}`);
+  rows.push('');
+
+  // Статистика
+  rows.push('СТАТИСТИКА');
+  rows.push(`Всего сделок;${trades.length}`);
+  rows.push(`Закрытых;${closed.length}`);
+  rows.push(`Открытых;${trades.filter(t=>t.status==='open').length}`);
+  rows.push(`Прибыльных;${wins.length}`);
+  rows.push(`Убыточных;${losses.length}`);
+  rows.push(`% прибыльных;${winRate}%`);
+  rows.push(`Суммарный П/У;${Math.round(totalPnl)} руб.`);
+  rows.push(`Средний R:R;${avgRR ? '1:' + avgRR.toFixed(2) : '—'}`);
+  rows.push('');
+
+  // Заголовки таблицы сделок
+  rows.push([
+    '№',
+    'Дата входа',
+    'Инструмент',
+    'Тип',
+    'Сектор',
+    'Вход (руб.)',
+    'Стоп (руб.)',
+    'Стоп %',
+    'Цель (руб.)',
+    'R:R',
+    'Объём (руб.)',
+    'VIX',
+    'Паттерн',
+    'Статус',
+    'Дата выхода',
+    'Цена выхода',
+    'П/У (руб.)',
+    'П/У %',
+    'Комментарий'
+  ].join(';'));
+
+  // Данные сделок
+  trades.forEach((t, i) => {
+    const stopPct = t.entry ? Math.abs((t.stop - t.entry) / t.entry * 100).toFixed(2) : '';
+    const rr = t.entry && t.stop && t.target
+      ? Math.abs((t.target - t.entry) / (t.entry - t.stop)).toFixed(2) : '';
+    const pnlPct = t.pnlPct ? t.pnlPct.toFixed(2) + '%' : '';
+    const pnl = t.pnl ? Math.round(t.pnl) : '';
+
+    rows.push([
+      i + 1,
+      t.date || '',
+      t.ticker || '',
+      t.type || '',
+      t.sector || '',
+      t.entry || '',
+      t.stop || '',
+      stopPct ? stopPct + '%' : '',
+      t.target || '',
+      rr ? '1:' + rr : '',
+      t.volume || '',
+      t.vix || '',
+      t.pattern || '',
+      t.status === 'open' ? 'Открыта' : 'Закрыта',
+      t.exitDate || '',
+      t.exitPrice || '',
+      pnl,
+      pnlPct,
+      (t.comment || '').replace(/;/g, ',')
+    ].join(';'));
+  });
+
+  // Скачиваем файл
+  const csv = BOM + rows.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const date = new Date().toLocaleDateString('ru').replace(/\./g, '-');
+  a.href     = url;
+  a.download = `brilliant_journal_${date}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast(`Экспортировано ${trades.length} сделок`);
+}
+
+function nukeAll() {
+  if (!confirm('Удалить все данные?')) return;
+  trades=[]; chked.clear(); persist();
+  renderChk(); updProg(); renderJ(); renderStats();
+  toast('Данные удалены');
+}
+
+function toast(msg) {
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2000);
+}
+
+init();
+</script>
+</body>
+</html>
