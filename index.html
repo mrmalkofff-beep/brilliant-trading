@@ -805,7 +805,9 @@ function save() {
     sector:curSect, vix:+document.getElementById('fVix').value||0,
     pattern:document.getElementById('fPat').value,
     comment:document.getElementById('fCom').value,
-    status:'open', exitPrice:0, exitDate:'', pnl:0, pnlPct:0
+    status:'open', exitPrice:0, exitDate:'', pnl:0, pnlPct:0,
+    volumeLeft:+document.getElementById('fVol').value||0,
+    partials:[]
   };
   trades.unshift(tr); persist(); tgSave(); clearF(); toast('Сделка сохранена!');
   try { tg?.HapticFeedback?.notificationOccurred('success'); } catch(e){}
@@ -873,45 +875,140 @@ function openTrd(i) {
       <div class="cr"><span class="cl">Стоп</span><span class="cv r">${t.stop.toLocaleString('ru')} ₽</span></div>
       <div class="cr"><span class="cl">Цель</span><span class="cv g">${t.target?t.target.toLocaleString('ru')+' ₽':'—'}</span></div>
       <div class="cr"><span class="cl">R:R</span><span class="cv ${rr>=1.5?'g':'r'}">${rr}</span></div>
-      <div class="cr"><span class="cl">Объём</span><span class="cv">${t.volume?t.volume.toLocaleString('ru')+' ₽':'—'}</span></div>
+      <div class="cr"><span class="cl">Объём общий</span><span class="cv">${t.volume?t.volume.toLocaleString('ru')+' ₽':'—'}</span></div>
+      <div class="cr"><span class="cl">Остаток в позиции</span><span class="cv o">${(t.volumeLeft||t.volume||0).toLocaleString('ru')} ₽</span></div>
       <div class="cr"><span class="cl">VIX</span><span class="cv">${t.vix||'—'}</span></div>
       <div class="cr"><span class="cl">Результат</span><span class="cv ${t.status==='open'?'o':t.pnl>=0?'g':'r'}">${pnlStr}</span></div>
     </div>
+    ${(t.partials&&t.partials.length)?`<div style="margin-bottom:12px">
+      <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;margin-bottom:6px">Частичные закрытия</div>
+      ${t.partials.map(p=>`<div style="display:flex;justify-content:space-between;
+        background:var(--bg4);border-radius:7px;padding:7px 10px;margin-bottom:4px;
+        border:0.5px solid var(--bdr)">
+        <span style="font-size:12px;color:var(--text2)">${p.date} · ${p.vol.toLocaleString('ru')} ₽ · ${p.price.toLocaleString('ru')} ₽</span>
+        <span style="font-size:12px;font-weight:600;color:${p.pnl>=0?'var(--grn)':'var(--red)'}">${p.pnl>=0?'+':''}${Math.round(p.pnl).toLocaleString('ru')} ₽</span>
+      </div>`).join('')}</div>`:''}
     ${t.status==='open'?`
-    <div class="f-group">
-      <label class="f-label">Цена выхода</label>
-      <input class="f-input" id="xPrice" type="number" placeholder="${t.target||t.entry}">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px">
+      <button onclick="showCloseMode('full')" id="mFull"
+        style="padding:9px;border-radius:9px;border:1.5px solid var(--grn);
+        background:rgba(16,185,129,.15);color:var(--grn);font-family:inherit;
+        font-size:12px;font-weight:600;cursor:pointer">✓ Полное</button>
+      <button onclick="showCloseMode('partial')" id="mPart"
+        style="padding:9px;border-radius:9px;border:1.5px solid var(--acc);
+        background:rgba(59,130,246,.1);color:var(--acc);font-family:inherit;
+        font-size:12px;font-weight:600;cursor:pointer">½ Частичное</button>
+    </div>
+    <div id="xVolWrap" style="display:none" class="f-group">
+      <label class="f-label">Объём для закрытия (₽) · остаток: ${(t.volumeLeft||t.volume||0).toLocaleString('ru')} ₽</label>
+      <input class="f-input" id="xVol" type="number"
+        placeholder="${Math.round((t.volumeLeft||t.volume||0)/2)}" oninput="calcPartial()">
     </div>
     <div class="f-group">
-      <label class="f-label">Причина выхода</label>
+      <label class="f-label">Цена выхода</label>
+      <input class="f-input" id="xPrice" type="number"
+        placeholder="${t.target||t.entry}" oninput="calcPartial()">
+    </div>
+    <div class="f-group">
+      <label class="f-label">Причина</label>
       <select class="f-select" id="xReason">
         <option>Цель достигнута</option>
+        <option>Частичная фиксация (50%)</option>
         <option>Стоп сработал</option>
         <option>Важные новости</option>
         <option>Смена тренда</option>
         <option>Сектор потерял лидерство</option>
       </select>
-    </div>`:''}
-    ${t.comment?`<div class="f-group"><label class="f-label">Комментарий</label>
+    </div>
+    <div id="xCalc" style="background:var(--bg4);border-radius:8px;padding:8px 12px;margin-top:6px;display:none">
+      <div class="cr"><span class="cl">П/У по этой части</span><span class="cv" id="xCalcPnl">—</span></div>
+      <div class="cr"><span class="cl">Остаток в позиции</span><span class="cv o" id="xCalcRest">—</span></div>
+    </div>`:''} 
+    ${t.comment?`<div class="f-group" style="margin-top:8px"><label class="f-label">Комментарий</label>
       <div style="font-size:12.5px;color:var(--text2);line-height:1.5">${t.comment}</div></div>`:''}`;
   document.getElementById('closeTrdBtn').style.display=t.status==='open'?'':'none';
   document.getElementById('sh').classList.add('open');
 }
 function closeSh(e) { if(e.target===document.getElementById('sh')) closeSheet(); }
 function closeSheet() { document.getElementById('sh').classList.remove('open'); }
-function closeTrd() {
-  const t=trades[curIdx];
-  const xp=+document.getElementById('xPrice').value;
-  if (!xp) { toast('Введи цену выхода'); return; }
+let closeMode='full';
+
+function showCloseMode(mode){
+  closeMode=mode;
+  const vw=document.getElementById('xVolWrap');
+  const mF=document.getElementById('mFull');
+  const mP=document.getElementById('mPart');
+  const btn=document.getElementById('closeTrdBtn');
+  if(mode==='partial'){
+    if(vw)vw.style.display='';
+    if(mP){mP.style.background='rgba(59,130,246,.3)';mP.style.borderWidth='2px';}
+    if(mF){mF.style.background='rgba(16,185,129,.08)';mF.style.borderWidth='1.5px';}
+    if(btn)btn.textContent='½ Частично закрыть';
+  } else {
+    if(vw)vw.style.display='none';
+    const xc=document.getElementById('xCalc');if(xc)xc.style.display='none';
+    if(mF){mF.style.background='rgba(16,185,129,.3)';mF.style.borderWidth='2px';}
+    if(mP){mP.style.background='rgba(59,130,246,.08)';mP.style.borderWidth='1.5px';}
+    if(btn)btn.textContent='✓ Закрыть сделку';
+  }
+}
+
+function calcPartial(){
+  const t=trades[curIdx]; if(!t)return;
+  const xp=+document.getElementById('xPrice')?.value;
+  const vEl=document.getElementById('xVol');
+  const vol=closeMode==='partial'
+    ?(+vEl?.value||(t.volumeLeft||t.volume||0)/2)
+    :(t.volumeLeft||t.volume||0);
+  if(!xp||!vol)return;
   const dir=t.type==='Лонг'?1:-1;
-  t.exitPrice=xp;
-  t.exitDate=new Date().toISOString().split('T')[0];
-  t.pnlPct=dir*(xp-t.entry)/t.entry*100;
-  t.pnl=t.volume?dir*(xp-t.entry)/t.entry*t.volume:0;
-  t.status='closed';
-  persist(); tgSave(); closeSheet(); renderJ(); renderStats();
-  toast('Сделка закрыта');
-  try { tg?.HapticFeedback?.notificationOccurred('success'); } catch(e){}
+  const pnl=dir*(xp-t.entry)/t.entry*vol;
+  const rest=(t.volumeLeft||t.volume||0)-vol;
+  const xc=document.getElementById('xCalc');if(xc)xc.style.display='';
+  const pe=document.getElementById('xCalcPnl');
+  const re=document.getElementById('xCalcRest');
+  if(pe){pe.textContent=(pnl>=0?'+':'')+Math.round(pnl).toLocaleString('ru')+' ₽';
+         pe.className='cv '+(pnl>=0?'g':'r');}
+  if(re)re.textContent=Math.max(0,Math.round(rest)).toLocaleString('ru')+' ₽';
+}
+
+function closeTrd(){
+  const t=trades[curIdx];
+  const xp=+document.getElementById('xPrice')?.value;
+  if(!xp){toast('Введи цену выхода');return;}
+  const dir=t.type==='Лонг'?1:-1;
+
+  if(closeMode==='partial'){
+    const vi=+document.getElementById('xVol')?.value;
+    const vc=vi||Math.round((t.volumeLeft||t.volume||0)/2);
+    const vl=(t.volumeLeft||t.volume||0)-vc;
+    if(vc<=0||vc>(t.volumeLeft||t.volume||0)){toast('Неверный объём');return;}
+    const pp=dir*(xp-t.entry)/t.entry*vc;
+    const today=new Date().toLocaleDateString('ru',{day:'numeric',month:'short'});
+    if(!t.partials)t.partials=[];
+    t.partials.push({date:today,price:xp,vol:vc,pnl:pp});
+    t.volumeLeft=Math.max(0,vl);
+    t.pnl=(t.pnl||0)+pp;
+    if(t.volumeLeft<=0){
+      t.status='closed';t.exitPrice=xp;
+      t.exitDate=new Date().toISOString().split('T')[0];
+      t.pnlPct=t.pnl/t.volume*100;
+    }
+    persist();tgSave();closeSheet();renderJ();renderStats();
+    toast(vl>0
+      ?`Закрыто ${vc.toLocaleString('ru')} ₽ · Остаток: ${vl.toLocaleString('ru')} ₽`
+      :'Позиция закрыта полностью');
+  } else {
+    const vol=t.volumeLeft||t.volume||0;
+    const partPnl=(t.partials||[]).reduce((s,p)=>s+p.pnl,0);
+    t.exitPrice=xp;t.exitDate=new Date().toISOString().split('T')[0];
+    t.pnlPct=dir*(xp-t.entry)/t.entry*100;
+    t.pnl=partPnl+(dir*(xp-t.entry)/t.entry*vol);
+    t.volumeLeft=0;t.status='closed';
+    persist();tgSave();closeSheet();renderJ();renderStats();
+    toast('Сделка закрыта');
+  }
+  try{tg?.HapticFeedback?.notificationOccurred('success');}catch(e){}
 }
 function delTrd() {
   trades.splice(curIdx,1); persist(); tgSave(); closeSheet(); renderJ(); renderStats();
