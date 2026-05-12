@@ -573,7 +573,10 @@ body {
       <button class="sec-b" style="margin:0" onclick="closeSheet()">Закрыть</button>
       <button class="save-b" id="closeTrdBtn" style="margin:0;font-size:13px" onclick="closeTrd()">✓ Закрыть сделку</button>
     </div>
-    <button class="del-b" onclick="delTrd()">Удалить сделку</button>
+    <div class="btn-row" style="margin-top:7px">
+      <button class="sec-b" style="margin:0;color:var(--acc);border-color:rgba(59,130,246,.4)" onclick="editTrd()">✏️ Редактировать</button>
+      <button class="del-b" style="margin:0" onclick="delTrd()">🗑 Удалить</button>
+    </div>
   </div>
 </div>
 
@@ -1010,6 +1013,138 @@ function closeTrd(){
   }
   try{tg?.HapticFeedback?.notificationOccurred('success');}catch(e){}
 }
+function editTrd() {
+  const t = trades[curIdx];
+  document.getElementById('shTitle').textContent = '✏️ Редактировать — ' + t.ticker;
+
+  // Скрываем кнопки закрытия/удаления пока редактируем
+  document.getElementById('closeTrdBtn').style.display = 'none';
+
+  document.getElementById('shBody').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <div>
+        <label class="f-label">Инструмент</label>
+        <input class="f-input" id="eTick" value="${t.ticker}" oninput="this.value=this.value.toUpperCase()">
+      </div>
+      <div>
+        <label class="f-label">Дата входа</label>
+        <input class="f-input" id="eDt" type="date" value="${t.date||''}">
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <div>
+        <label class="f-label">Тип</label>
+        <select class="f-select" id="eType">
+          <option ${t.type==='Лонг'?'selected':''}>Лонг</option>
+          <option ${t.type==='Шорт'?'selected':''}>Шорт</option>
+        </select>
+      </div>
+      <div>
+        <label class="f-label">Объём (₽)</label>
+        <input class="f-input" id="eVol" type="number" value="${t.volume||''}">
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
+      <div>
+        <label class="f-label">Вход ₽</label>
+        <input class="f-input" id="eEn" type="number" value="${t.entry||''}" oninput="calcEdit()">
+      </div>
+      <div>
+        <label class="f-label">Стоп ₽</label>
+        <input class="f-input" id="eSt" type="number" value="${t.stop||''}" oninput="calcEdit()">
+      </div>
+      <div>
+        <label class="f-label">Цель ₽</label>
+        <input class="f-input" id="eTg" type="number" value="${t.target||''}" oninput="calcEdit()">
+      </div>
+    </div>
+    <div id="eCalc" style="background:var(--bg4);border-radius:8px;padding:8px 12px;margin-bottom:8px">
+      <div class="cr"><span class="cl">Стоп %</span><span class="cv" id="eCSt">—</span></div>
+      <div class="cr"><span class="cl">R:R</span><span class="cv" id="eCRR">—</span></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <div>
+        <label class="f-label">VIX</label>
+        <input class="f-input" id="eVix" type="number" step="0.1" value="${t.vix||''}">
+      </div>
+      <div>
+        <label class="f-label">Паттерн</label>
+        <select class="f-select" id="ePat">
+          <option value="" ${!t.pattern?'selected':''}>—</option>
+          <option ${t.pattern==='Пробитие уровня'?'selected':''}>Пробитие уровня</option>
+          <option ${t.pattern==='Отскок от MA-50'?'selected':''}>Отскок от MA-50</option>
+          <option ${t.pattern==='Ложный пробой вниз'?'selected':''}>Ложный пробой вниз</option>
+          <option ${t.pattern==='Другой'?'selected':''}>Другой</option>
+        </select>
+      </div>
+    </div>
+    <div class="f-group">
+      <label class="f-label">Сектор</label>
+      <select class="f-select" id="eSec">
+        <option value="" ${!t.sector?'selected':''}>—</option>
+        <option ${t.sector==='RUSFN'?'selected':''}>RUSFN</option>
+        <option ${t.sector==='RUSOG'?'selected':''}>RUSOG</option>
+        <option ${t.sector==='RUSMM'?'selected':''}>RUSMM</option>
+        <option ${t.sector==='RUSIT'?'selected':''}>RUSIT</option>
+        <option ${t.sector==='RUSRE'?'selected':''}>RUSRE</option>
+        <option ${t.sector==='RUSCN'?'selected':''}>RUSCN</option>
+        <option ${t.sector==='Крипта'?'selected':''}>Крипта</option>
+        <option ${t.sector==='Другое'?'selected':''}>Другое</option>
+      </select>
+    </div>
+    <div class="f-group">
+      <label class="f-label">Комментарий</label>
+      <textarea class="f-select" id="eCom" style="height:60px;resize:none;line-height:1.5">${t.comment||''}</textarea>
+    </div>
+    <button class="save-b" onclick="saveEdit()" style="width:100%;margin-top:4px">
+      💾 Сохранить изменения
+    </button>
+  `;
+  // Считаем сразу при открытии
+  calcEdit();
+}
+
+function calcEdit() {
+  const en = +document.getElementById('eEn')?.value;
+  const st = +document.getElementById('eSt')?.value;
+  const tg = +document.getElementById('eTg')?.value;
+  if (!en || !st) return;
+  const sp = Math.abs((st-en)/en*100);
+  const rr = tg ? Math.abs((tg-en)/(en-st)) : null;
+  const stEl = document.getElementById('eCSt');
+  const rrEl = document.getElementById('eCRR');
+  if (stEl) stEl.textContent = sp.toFixed(2)+'%';
+  if (rrEl) {
+    rrEl.textContent = rr ? '1:'+rr.toFixed(2) : '—';
+    rrEl.className = 'cv '+(rr>=1.5?'g':'r');
+  }
+}
+
+function saveEdit() {
+  const t = trades[curIdx];
+  const tick = document.getElementById('eTick')?.value.trim().toUpperCase();
+  if (!tick) { toast('Введи инструмент'); return; }
+
+  t.ticker  = tick;
+  t.date    = document.getElementById('eDt')?.value || t.date;
+  t.type    = document.getElementById('eType')?.value || t.type;
+  t.entry   = +document.getElementById('eEn')?.value || t.entry;
+  t.stop    = +document.getElementById('eSt')?.value || t.stop;
+  t.target  = +document.getElementById('eTg')?.value || t.target;
+  t.volume  = +document.getElementById('eVol')?.value || t.volume;
+  t.vix     = +document.getElementById('eVix')?.value || t.vix;
+  t.pattern = document.getElementById('ePat')?.value || t.pattern;
+  t.sector  = document.getElementById('eSec')?.value || t.sector;
+  t.comment = document.getElementById('eCom')?.value || t.comment;
+  // Обновляем остаток если позиция открыта
+  if (t.status === 'open') t.volumeLeft = t.volume;
+
+  persist(); tgSave();
+  closeSheet(); renderJ(); renderStats();
+  toast('Сделка обновлена ✓');
+  try { tg?.HapticFeedback?.notificationOccurred('success'); } catch(e) {}
+}
+
 function delTrd() {
   trades.splice(curIdx,1); persist(); tgSave(); closeSheet(); renderJ(); renderStats();
   toast('Удалено');
