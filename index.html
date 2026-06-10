@@ -833,7 +833,15 @@ function renderJ() {
       <div class="e-s">Добавь первую сделку</div></div>`;
     return;
   }
-  el.innerHTML=trades.map((t,i)=>{
+  // Открытые сделки — наверх, закрытые — по дате убыванию
+  const sorted = [...trades.map((t,i)=>({...t,_i:i}))]
+    .sort((a,b)=>{
+      if (a.status==='open' && b.status!=='open') return -1;
+      if (a.status!=='open' && b.status==='open') return 1;
+      return 0;
+    });
+  el.innerHTML=sorted.map((t)=>{
+    const i=t._i;
     const pnlStr=t.status==='open'
       ?'<span class="live"></span>Открыта'
       :(t.pnl>=0?'+':'')+Math.round(t.pnl).toLocaleString('ru')+'₽';
@@ -883,6 +891,15 @@ function openTrd(i) {
       <div class="cr"><span class="cl">VIX</span><span class="cv">${t.vix||'—'}</span></div>
       <div class="cr"><span class="cl">Результат</span><span class="cv ${t.status==='open'?'o':t.pnl>=0?'g':'r'}">${pnlStr}</span></div>
     </div>
+    ${t.status==='closed'&&t.exitPrice?`
+    <div style="background:rgba(${t.pnl>=0?'63,185,80':'248,81,73'},.07);border:1px solid rgba(${t.pnl>=0?'63,185,80':'248,81,73'},.25);border-radius:8px;padding:10px 12px;margin-bottom:12px">
+      <div style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.7px;margin-bottom:7px">Закрытие позиции</div>
+      <div class="cr"><span class="cl">Дата закрытия</span><span class="cv">${t.exitDate?new Date(t.exitDate).toLocaleDateString('ru',{day:'numeric',month:'short',year:'numeric'}):'—'}</span></div>
+      <div class="cr"><span class="cl">Цена закрытия</span><span class="cv">${t.exitPrice.toLocaleString('ru')} ₽</span></div>
+      <div class="cr"><span class="cl">Итого П/У</span><span class="cv ${t.pnl>=0?'g':'r'}">${t.pnl>=0?'+':''}${Math.round(t.pnl).toLocaleString('ru')} ₽</span></div>
+      <div class="cr"><span class="cl">П/У %</span><span class="cv ${t.pnlPct>=0?'g':'r'}">${t.pnlPct>=0?'+':''}${t.pnlPct.toFixed(2)}%</span></div>
+    </div>`:''}
+
     ${(t.partials&&t.partials.length)?`<div style="margin-bottom:12px">
       <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;margin-bottom:6px">Частичные закрытия</div>
       ${t.partials.map(p=>`<div style="display:flex;justify-content:space-between;
